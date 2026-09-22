@@ -1,2 +1,2 @@
 # Симуляция простейшего бытового смесителя
-[simulation](simulation.png)
+![simulation](simulation.png)
