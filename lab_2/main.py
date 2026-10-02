@@ -1,38 +1,50 @@
-import numpy
-import matplotlib.pyplot as plot
-from scipy.integrate import odeint  # Ordinary Differential Equation Integrator
+"""Моделирование смешивания двух потоков воды в баке."""
 
-volume = 52  # Объем бака
-theta_1 = 15  # Температура первого потока (холодная вода)
-theta_2 = 65  # Температура второго потока (горячая вода)
-g_1 = 4  # Расход первого потока (холодная вода)
-g_2 = 3  # Расход второго потока (горячая вода)
+from pathlib import Path
 
-theta_0 = 25
+import matplotlib.pyplot as plt
+import numpy as np
+from scipy.integrate import odeint  # интегратор ОДУ
 
-def heat_balance_ode(T, t):
-    dT_dt = (g_1 * theta_1 + g_2 * theta_2 - (g_1 + g_2) * T) / volume
+# --- Параметры модели ---
+VOLUME = 52  # Объём бака, л
+THETA_1 = 15  # Температура первого потока (холодная вода), °C
+THETA_2 = 65  # Температура второго потока (горячая вода), °C
+G_1 = 4  # Расход первого потока, м^3/с
+G_2 = 3  # Расход второго потока, м^3/с
+THETA_0 = 25  # Начальная температура воды в баке, °C
+
+# --- Параметры расчёта ---
+T_END = 60  # Длительность моделирования, с
+NUM_POINTS = 600  # Число точек временной сетки
+
+# --- Оформление графика ---
+OUTPUT_FILE = Path(__file__).parent / "simulation.png"  # путь отсчитывается от скрипта
+FIGURE_SIZE = (10, 6)  # размер рисунка, дюймы
+DPI = 150  # разрешение сохраняемого изображения
+
+def heat_balance_ode(T: float, t: float) -> float:
+    """Производная температуры в баке: уравнение теплового баланса."""
+    dT_dt = (G_1 * THETA_1 + G_2 * THETA_2 - (G_1 + G_2) * T) / VOLUME
     return dT_dt
 
-t = numpy.linspace(0, 60, 600)
+def main() -> None:
+    t_grid = np.linspace(0, T_END, NUM_POINTS)
+    T_numeric = odeint(heat_balance_ode, THETA_0, t_grid)
 
-T_solution = odeint(heat_balance_ode, theta_0, t)
+    final = T_numeric[-1][0]
+    print(f"Конечная температура: {final:.2f} градусов")
 
-T_steady = (g_1 * theta_1 + g_2 * theta_2) / (g_1 + g_2)  # dT_dt = 0
-print(f"Установившаяся температура: {T_steady:.2f} градусов")
+    plt.figure(figsize=FIGURE_SIZE)
+    plt.plot(t_grid, T_numeric, "b-", linewidth=2, label="T(t)")
+    plt.title("Моделирование смешивания двух потоков")
+    plt.xlabel("Время, с")
+    plt.ylabel("Температура, °C")
+    plt.legend()
+    plt.grid(True)
+    plt.tight_layout()
+    plt.savefig(OUTPUT_FILE, dpi=DPI)
+    print(f"График сохранён в файл '{OUTPUT_FILE.name}'")
 
-# Построение графика
-plot.figure(figsize=(10, 6))
-plot.plot(t, T_solution, 'b-', linewidth=2, label='Температура в баке T(t)')
-
-plot.axhline(y=T_steady, color='g', linewidth=1, linestyle='--', label=f'Установившееся значение ({T_steady:.1f}°)')
-
-plot.title('Моделирование смешивания двух потоков')
-plot.xlabel('Время, с')
-plot.ylabel('Температура, °С')
-plot.legend()
-plot.grid(True)
-
-file_name = 'simulation.png'
-plot.savefig(file_name, dpi=150)
-print(f"График сохранен в файл '{file_name}'")
+if __name__ == "__main__":
+    main()
